@@ -1,43 +1,47 @@
 from fastapi import APIRouter, Query
-from fastapi.responses import JSONResponse
 
-from app.schemas import MandiPriceResponse
+from app.db.postgres_client import PostgresClient
+from app.tools.mandi_tools import (
+    compare_nearby_markets,
+    get_current_price,
+    get_price_history,
+)
 
 router = APIRouter()
 
 
 @router.get("/mandi/price")
 async def get_mandi_price(
-    commodity: str = Query(..., description="Commodity name"),
+    commodity: str = Query(..., description="Commodity name (Hindi or English)"),
     market: str = Query(..., description="Market/mandi name"),
 ):
     """Get current mandi price for a commodity."""
-    return JSONResponse(
-        status_code=501,
-        content={"detail": "Mandi price endpoint not yet implemented"},
-    )
+    db = PostgresClient()
+    price = await get_current_price(db, commodity, market)
+    if price:
+        return price
+    return {"error": "Price data not available", "commodity": commodity, "market": market}
 
 
-@router.get("/mandi/predict")
-async def predict_mandi_price(
-    commodity: str = Query(..., description="Commodity name"),
-    market: str = Query(..., description="Market/mandi name"),
-    days: int = Query(30, description="Number of days to predict"),
+@router.get("/mandi/history")
+async def get_mandi_history(
+    commodity: str = Query(...),
+    market: str = Query(...),
+    days: int = Query(30, ge=1, le=365),
 ):
-    """Predict future mandi prices using ML models."""
-    return JSONResponse(
-        status_code=501,
-        content={"detail": "Mandi price prediction endpoint not yet implemented"},
-    )
+    """Get price history for a commodity in a market."""
+    db = PostgresClient()
+    history = await get_price_history(db, commodity, market, days)
+    return {"commodity": commodity, "market": market, "history": history}
 
 
 @router.get("/mandi/compare")
 async def compare_mandi_prices(
     commodity: str = Query(..., description="Commodity name"),
-    markets: str = Query(..., description="Comma-separated list of markets"),
+    state: str = Query(..., description="State name"),
+    max_markets: int = Query(5, ge=1, le=20),
 ):
-    """Compare prices across multiple mandis."""
-    return JSONResponse(
-        status_code=501,
-        content={"detail": "Mandi price comparison endpoint not yet implemented"},
-    )
+    """Compare prices across markets in a state."""
+    db = PostgresClient()
+    results = await compare_nearby_markets(db, commodity, state, max_markets)
+    return {"commodity": commodity, "state": state, "markets": results}

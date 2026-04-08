@@ -1,0 +1,275 @@
+version: '3.8'
+
+# Production Docker Compose for KisanMitra AI Platform
+# Usage: docker compose -f infra/docker-compose.prod.yml up -d
+
+services:
+  # ========== REVERSE PROXY ==========
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: kisanmitra-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - gateway
+      - ai-service
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - kisanmitra-network
+
+  # ========== DATABASES ==========
+  postgres:
+    image: postgres:16
+    container_name: kisanmitra-postgres
+    environment:
+      POSTGRES_DB: kisanmitra
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/001_create_tables.sql:/docker-entrypoint-initdb.d/001_create_tables.sql
+      - ./sql/002_seed_data.sql:/docker-entrypoint-initdb.d/002_seed_data.sql
+      - pg_backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d kisanmitra"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - kisanmitra-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: kisanmitra-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    networks:
+      - kisanmitra-network
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: kisanmitra-chromadb
+    volumes:
+      - chromadata:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    networks:
+      - kisanmitra-network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: kisanmitra-ollama
+    volumes:
+      - ollama_models:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - kisanmitra-network
+
+  # ========== APPLICATION SERVICES ==========
+  gateway:
+    build:
+      context: ../services/gateway
+      dockerfile: Dockerfile
+    container_name: kisanmitra-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      DB_URL: jdbc:postgresql://postgres:5432/kisanmitra
+      DB_USERNAME: admin
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AI_SERVICE_URL: http://ai-service:8001
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_MINUTES: 15
+      GUPSHUP_API_KEY: ${GUPSHUP_API_KEY}
+      GUPSHUP_APP_NAME: ${GUPSHUP_APP_NAME}
+      GUPSHUP_WEBHOOK_SECRET: ${GUPSHUP_WEBHOOK_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - kisanmitra-network
+
+  ai-service:
+    build:
+      context: ../services/ai-service
+      dockerfile: Dockerfile
+    container_name: kisanmitra-ai-service
+    environment:
+      APP_ENV: production
+      DB_URL: postgresql://admin:${DB_PASSWORD}@postgres:5432/kisanmitra
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL_DEFAULT: ${OLLAMA_MODEL_DEFAULT:-qwen3:7b}
+      CHROMA_HOST: http://chromadb:8000
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      BHASHINI_API_KEY: ${BHASHINI_API_KEY}
+      SARVAM_API_KEY: ${SARVAM_API_KEY:-}
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+      ollama:
+        condition: service_started
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - kisanmitra-network
+
+  scraper:
+    build:
+      context: ../services/scraper
+      dockerfile: Dockerfile
+    container_name: kisanmitra-scraper
+    environment:
+      DB_URL: postgresql://admin:${DB_PASSWORD}@postgres:5432/kisanmitra
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - kisanmitra-network
+
+  # ========== MONITORING ==========
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kisanmitra-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    networks:
+      - kisanmitra-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kisanmitra-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SERVER_ROOT_URL: http://localhost:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - kisanmitra-network
+
+volumes:
+  pgdata:
+  chromadata:
+  ollama_models:
+  nginx_logs:
+  pg_backups:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  kisanmitra-network:
+    driver: bridge

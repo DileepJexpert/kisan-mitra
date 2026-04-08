@@ -1,0 +1,46 @@
+LEGAL NOTICE
+(Under Section 15 of the Micro, Small and Medium Enterprises Development Act, 2006)
+
+Date: {notice_date}
+Reference No.: {reference_number}
+
+FROM:
+{sender_name}
+{sender_address}
+Udyam Registration No.: {udyam_number}
+
+TO:
+{buyer_name}
+{buyer_address}
+GSTIN: {buyer_gstin}
+
+SUBJECT: Legal Notice for Delayed Payment against Invoice No. {invoice_number} dated {invoice_date}
+
+Dear Sir/Madam,
+
+On behalf of my client, I hereby serve this Legal Notice upon you and state as follows:
+
+1. That my client supplied goods/services to you vide Invoice No. {invoice_number} dated {invoice_date} for a total value of Rs.{invoice_amount}/- (Rupees {invoice_amount_words} only).
+
+2. That the said invoice was due for payment on {due_date}. However, as on {notice_date}, a period of {days_overdue} days has elapsed and the payment remains outstanding.
+
+3. That under Section 15 of the Micro, Small and Medium Enterprises Development (MSMED) Act, 2006, the buyer is liable to make payment on or before the agreed date, or in the absence of any agreement, within 45 days of acceptance of goods/services.
+
+4. That under Section 16 of the MSMED Act, 2006, the buyer is liable to pay compound interest with monthly rests at three times the bank rate notified by the Reserve Bank of India on the outstanding amount.
+
+5. Interest Calculation:
+   - Principal Amount: Rs.{invoice_amount}/-
+   - Period of Delay: {days_overdue} days
+   - Rate of Interest: {interest_rate}% per annum (3x RBI Bank Rate)
+   - Interest Amount: Rs.{interest_amount}/-
+   - Total Amount Due: Rs.{total_claim}/-
+
+6. You are hereby called upon to pay the total sum of Rs.{total_claim}/- (Rupees {total_claim_words} only) within 15 days from the receipt of this notice.
+
+7. In the event of your failure to make the payment within the stipulated period, my client shall be constrained to file a complaint on the MSME Samadhaan Portal and initiate proceedings before the Micro and Small Enterprises Facilitation Council (MSEFC), in which event you shall also be liable to bear the costs of such proceedings.
+
+This notice is being issued without prejudice to any other rights and remedies available to my client under the law.
+
+Yours faithfully,
+{sender_name}
+Date: {notice_date}

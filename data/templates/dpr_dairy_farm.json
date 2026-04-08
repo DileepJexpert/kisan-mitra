@@ -1,0 +1,75 @@
+{
+  "business_type": "dairy_farm",
+  "business_name_en": "Dairy Farm",
+  "business_name_hi": "डेयरी फार्म",
+  "variants": {
+    "10_cow": {
+      "scale": "10 Cow Unit (HF/Jersey Crossbred)",
+      "components": [
+        {"name": "Purchase of 10 HF/Jersey crossbred cows", "quantity": 10, "unit_cost": 60000, "total_cost": 600000},
+        {"name": "Cattle shed construction (1500 sq ft)", "quantity": 1, "unit_cost": 200000, "total_cost": 200000},
+        {"name": "Milking machine (single bucket)", "quantity": 1, "unit_cost": 50000, "total_cost": 50000},
+        {"name": "Chaff cutter", "quantity": 1, "unit_cost": 25000, "total_cost": 25000},
+        {"name": "Bulk milk cooler (500 litre)", "quantity": 1, "unit_cost": 150000, "total_cost": 150000},
+        {"name": "Fodder cultivation (1 acre)", "quantity": 1, "unit_cost": 30000, "total_cost": 30000},
+        {"name": "Cattle insurance", "quantity": 10, "unit_cost": 3000, "total_cost": 30000},
+        {"name": "Working capital (3 months)", "quantity": 1, "unit_cost": 150000, "total_cost": 150000},
+        {"name": "Transport vehicle (second-hand)", "quantity": 1, "unit_cost": 100000, "total_cost": 100000},
+        {"name": "Miscellaneous", "quantity": 1, "unit_cost": 65000, "total_cost": 65000}
+      ],
+      "total_project_cost": 1400000,
+      "revenue_assumptions": {
+        "milk_yield_per_cow_per_day_litres": 12,
+        "lactation_period_days": 300,
+        "dry_period_days": 65,
+        "milk_price_per_litre": 45,
+        "price_growth_annual_percent": 5,
+        "calf_sale_income_per_cow": 15000,
+        "dung_sale_annual": 20000,
+        "mortality_rate_percent": 2
+      },
+      "annual_expenses": {
+        "green_fodder_per_cow_per_day_kg": 25,
+        "green_fodder_cost_per_kg": 3,
+        "dry_fodder_per_cow_per_day_kg": 5,
+        "dry_fodder_cost_per_kg": 8,
+        "concentrate_per_cow_per_day_kg": 4,
+        "concentrate_cost_per_kg": 25,
+        "veterinary_per_cow_annual": 5000,
+        "labour_monthly": 15000,
+        "electricity_monthly": 3000,
+        "maintenance_annual": 30000,
+        "insurance_annual": 30000,
+        "miscellaneous_annual": 25000
+      }
+    },
+    "20_cow": {
+      "scale": "20 Cow Unit",
+      "components": [
+        {"name": "Purchase of 20 cows", "quantity": 20, "unit_cost": 60000, "total_cost": 1200000},
+        {"name": "Cattle shed (3000 sq ft)", "quantity": 1, "unit_cost": 350000, "total_cost": 350000},
+        {"name": "Milking machine (double bucket)", "quantity": 1, "unit_cost": 80000, "total_cost": 80000},
+        {"name": "Chaff cutter (heavy duty)", "quantity": 1, "unit_cost": 40000, "total_cost": 40000},
+        {"name": "Bulk milk cooler (1000 litre)", "quantity": 1, "unit_cost": 250000, "total_cost": 250000},
+        {"name": "Fodder cultivation (2 acres)", "quantity": 1, "unit_cost": 50000, "total_cost": 50000},
+        {"name": "Cattle insurance", "quantity": 20, "unit_cost": 3000, "total_cost": 60000},
+        {"name": "Working capital (3 months)", "quantity": 1, "unit_cost": 280000, "total_cost": 280000},
+        {"name": "Transport vehicle", "quantity": 1, "unit_cost": 200000, "total_cost": 200000},
+        {"name": "Miscellaneous", "quantity": 1, "unit_cost": 90000, "total_cost": 90000}
+      ],
+      "total_project_cost": 2600000
+    }
+  },
+  "applicable_schemes": [
+    {"scheme_code": "NABARD_DEDS", "subsidy_general": 25, "subsidy_sc_st": 33.33, "max_subsidy": 1000000},
+    {"scheme_code": "NLM", "subsidy_general": 50, "subsidy_sc_st": 50, "max_subsidy": 5000000},
+    {"scheme_code": "AHIDF", "interest_subsidy": 3, "max_loan": 20000000},
+    {"scheme_code": "KCC", "interest_rate": 4, "max_amount": 300000}
+  ],
+  "financial_ratios": {
+    "debt_equity_ratio_max": 3.0,
+    "dscr_min": 1.5,
+    "irr_min_percent": 15,
+    "payback_period_max_years": 5
+  }
+}

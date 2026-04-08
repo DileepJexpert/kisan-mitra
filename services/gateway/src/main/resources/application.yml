@@ -1,0 +1,43 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/kisanmitra}
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+app:
+  jwt:
+    secret: ${JWT_SECRET:default-dev-secret-key-change-in-production-must-be-at-least-256-bits}
+    expiry-minutes: ${JWT_EXPIRY_MINUTES:15}
+    refresh-expiry-days: 7
+  ai-service:
+    url: ${AI_SERVICE_URL:http://localhost:8001}
+    timeout-seconds: 30
+  gupshup:
+    api-key: ${GUPSHUP_API_KEY:}
+    app-name: ${GUPSHUP_APP_NAME:KisanMitraBot}
+    webhook-secret: ${GUPSHUP_WEBHOOK_SECRET:}
+    send-url: https://api.gupshup.io/wa/api/v1/msg
+  msg91:
+    api-key: ${MSG91_API_KEY:}
+    sender-id: ${MSG91_SENDER_ID:KSMTRA}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+logging:
+  level:
+    com.kisanmitra: ${LOG_LEVEL:DEBUG}
+    root: INFO

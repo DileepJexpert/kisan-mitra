@@ -1,0 +1,147 @@
+version: '3.8'
+
+services:
+  # ========== DATABASES ==========
+  postgres:
+    image: postgres:16
+    container_name: kisanmitra-postgres
+    environment:
+      POSTGRES_DB: kisanmitra
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/001_create_tables.sql:/docker-entrypoint-initdb.d/001_create_tables.sql
+      - ./sql/002_seed_data.sql:/docker-entrypoint-initdb.d/002_seed_data.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d kisanmitra"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kisanmitra-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: kisanmitra-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kisanmitra-network
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: kisanmitra-chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadata:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=FALSE
+    networks:
+      - kisanmitra-network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: kisanmitra-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - kisanmitra-network
+
+  # ========== APPLICATION SERVICES ==========
+  gateway:
+    build:
+      context: ../services/gateway
+      dockerfile: Dockerfile
+    container_name: kisanmitra-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/kisanmitra
+      DB_USERNAME: admin
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AI_SERVICE_URL: http://ai-service:8001
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production-must-be-256-bits-long}
+      JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES:-15}
+      GUPSHUP_API_KEY: ${GUPSHUP_API_KEY:-}
+      GUPSHUP_APP_NAME: ${GUPSHUP_APP_NAME:-KisanMitraBot}
+      GUPSHUP_WEBHOOK_SECRET: ${GUPSHUP_WEBHOOK_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - kisanmitra-network
+
+  ai-service:
+    build:
+      context: ../services/ai-service
+      dockerfile: Dockerfile
+    container_name: kisanmitra-ai-service
+    ports:
+      - "8001:8001"
+    environment:
+      DB_URL: postgresql://admin:${DB_PASSWORD:-password}@postgres:5432/kisanmitra
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL_DEFAULT: ${OLLAMA_MODEL_DEFAULT:-qwen3:7b}
+      CHROMA_HOST: http://chromadb:8000
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      BHASHINI_API_KEY: ${BHASHINI_API_KEY:-}
+      SARVAM_API_KEY: ${SARVAM_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+      ollama:
+        condition: service_started
+    networks:
+      - kisanmitra-network
+
+  scraper:
+    build:
+      context: ../services/scraper
+      dockerfile: Dockerfile
+    container_name: kisanmitra-scraper
+    environment:
+      DB_URL: postgresql://admin:${DB_PASSWORD:-password}@postgres:5432/kisanmitra
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - kisanmitra-network
+
+volumes:
+  pgdata:
+  chromadata:
+  ollama_models:
+
+networks:
+  kisanmitra-network:
+    driver: bridge

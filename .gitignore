@@ -1,0 +1,79 @@
+# =====================
+# Java / Maven / Gradle
+# =====================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+.gradle/
+build/
+
+# =====================
+# Python
+# =====================
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =====================
+# AI / ML Models
+# =====================
+*.bin
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.onnx
+models/
+
+# =====================
+# Docker
+# =====================
+.env
+!.env.example
+
+# =====================
+# Node.js
+# =====================
+node_modules/
+
+# =====================
+# IDE / Editors
+# =====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =====================
+# OS
+# =====================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =====================
+# Logs
+# =====================
+*.log
+logs/
+
+# =====================
+# Data (large files)
+# =====================
+*.csv

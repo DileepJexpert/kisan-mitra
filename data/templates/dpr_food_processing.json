@@ -1,0 +1,130 @@
+{
+  "business_type": "food_processing",
+  "business_name_en": "Food Processing Unit (Mango Pulp / Tomato Paste)",
+  "business_name_hi": "खाद्य प्रसंस्करण इकाई (आम का गूदा / टमाटर पेस्ट)",
+  "variants": {
+    "small_1tpd": {
+      "scale": "Small Unit - 1 Tonne Per Day (TPD)",
+      "components": [
+        {"name": "Processing shed construction (1000 sq ft)", "quantity": 1, "unit_cost": 300000, "total_cost": 300000},
+        {"name": "Pulper/juicer machine (1 TPD)", "quantity": 1, "unit_cost": 180000, "total_cost": 180000},
+        {"name": "Pasteurizer (batch type, 200 litre)", "quantity": 1, "unit_cost": 150000, "total_cost": 150000},
+        {"name": "Packaging machine (semi-automatic pouch/jar)", "quantity": 1, "unit_cost": 120000, "total_cost": 120000},
+        {"name": "Cold storage room (small, 2 tonne capacity)", "quantity": 1, "unit_cost": 250000, "total_cost": 250000},
+        {"name": "Boiler (small steam boiler)", "quantity": 1, "unit_cost": 150000, "total_cost": 150000},
+        {"name": "Raw material (seasonal stock - mango/tomato)", "quantity": 1, "unit_cost": 200000, "total_cost": 200000},
+        {"name": "Working capital (3 months)", "quantity": 1, "unit_cost": 200000, "total_cost": 200000},
+        {"name": "Licensing (FSSAI, pollution board, trade license)", "quantity": 1, "unit_cost": 50000, "total_cost": 50000},
+        {"name": "Miscellaneous (wiring, plumbing, utensils, testing)", "quantity": 1, "unit_cost": 200000, "total_cost": 200000}
+      ],
+      "total_project_cost": 1800000,
+      "revenue_assumptions": {
+        "products": [
+          {
+            "name": "Mango Pulp (Totapuri/Alphonso)",
+            "production_capacity_kg_per_day": 500,
+            "selling_price_per_kg": 80,
+            "season_months": 4,
+            "working_days_per_month": 26,
+            "raw_material_to_pulp_ratio": 2.5,
+            "raw_material_cost_per_kg": 15
+          },
+          {
+            "name": "Tomato Paste/Puree",
+            "production_capacity_kg_per_day": 400,
+            "selling_price_per_kg": 60,
+            "season_months": 8,
+            "working_days_per_month": 26,
+            "raw_material_to_paste_ratio": 3.0,
+            "raw_material_cost_per_kg": 10
+          }
+        ],
+        "capacity_utilization_year1_percent": 50,
+        "capacity_utilization_year2_percent": 70,
+        "capacity_utilization_year3_onward_percent": 85,
+        "price_growth_annual_percent": 5
+      },
+      "annual_expenses": {
+        "raw_material_annual_estimate": 400000,
+        "packaging_material_annual": 80000,
+        "labour_monthly": 25000,
+        "electricity_monthly": 8000,
+        "fuel_for_boiler_monthly": 10000,
+        "transport_monthly": 10000,
+        "cold_storage_running_monthly": 5000,
+        "maintenance_annual": 25000,
+        "insurance_annual": 15000,
+        "licensing_renewal_annual": 10000,
+        "lab_testing_annual": 15000,
+        "miscellaneous_annual": 20000
+      }
+    },
+    "medium_5tpd": {
+      "scale": "Medium Unit - 5 Tonnes Per Day (TPD)",
+      "components": [
+        {"name": "Processing shed construction (3000 sq ft)", "quantity": 1, "unit_cost": 700000, "total_cost": 700000},
+        {"name": "Pulper/juicer machine (5 TPD, continuous)", "quantity": 1, "unit_cost": 450000, "total_cost": 450000},
+        {"name": "Pasteurizer (continuous/tubular type)", "quantity": 1, "unit_cost": 400000, "total_cost": 400000},
+        {"name": "Packaging machine (automatic, multi-format)", "quantity": 1, "unit_cost": 350000, "total_cost": 350000},
+        {"name": "Cold storage room (10 tonne capacity)", "quantity": 1, "unit_cost": 600000, "total_cost": 600000},
+        {"name": "Boiler (industrial steam boiler)", "quantity": 1, "unit_cost": 350000, "total_cost": 350000},
+        {"name": "Raw material (seasonal bulk stock)", "quantity": 1, "unit_cost": 500000, "total_cost": 500000},
+        {"name": "Working capital (3 months)", "quantity": 1, "unit_cost": 600000, "total_cost": 600000},
+        {"name": "Licensing (FSSAI, pollution board, BIS, export)", "quantity": 1, "unit_cost": 100000, "total_cost": 100000},
+        {"name": "Miscellaneous (wiring, plumbing, lab setup, QC equipment)", "quantity": 1, "unit_cost": 450000, "total_cost": 450000}
+      ],
+      "total_project_cost": 5500000,
+      "revenue_assumptions": {
+        "products": [
+          {
+            "name": "Mango Pulp (Totapuri/Alphonso)",
+            "production_capacity_kg_per_day": 2500,
+            "selling_price_per_kg": 80,
+            "season_months": 4,
+            "working_days_per_month": 26,
+            "raw_material_to_pulp_ratio": 2.5,
+            "raw_material_cost_per_kg": 12
+          },
+          {
+            "name": "Tomato Paste/Puree",
+            "production_capacity_kg_per_day": 2000,
+            "selling_price_per_kg": 60,
+            "season_months": 8,
+            "working_days_per_month": 26,
+            "raw_material_to_paste_ratio": 3.0,
+            "raw_material_cost_per_kg": 8
+          }
+        ],
+        "capacity_utilization_year1_percent": 45,
+        "capacity_utilization_year2_percent": 65,
+        "capacity_utilization_year3_onward_percent": 80,
+        "price_growth_annual_percent": 5
+      },
+      "annual_expenses": {
+        "raw_material_annual_estimate": 1500000,
+        "packaging_material_annual": 250000,
+        "labour_monthly": 60000,
+        "electricity_monthly": 25000,
+        "fuel_for_boiler_monthly": 30000,
+        "transport_monthly": 25000,
+        "cold_storage_running_monthly": 15000,
+        "maintenance_annual": 60000,
+        "insurance_annual": 40000,
+        "licensing_renewal_annual": 25000,
+        "lab_testing_annual": 30000,
+        "miscellaneous_annual": 50000
+      }
+    }
+  },
+  "applicable_schemes": [
+    {"scheme_code": "PMFME", "subsidy_general": 35, "subsidy_sc_st": 35, "max_subsidy": 1000000},
+    {"scheme_code": "PMEGP", "subsidy_general_urban": 15, "subsidy_general_rural": 25, "subsidy_sc_st_urban": 25, "subsidy_sc_st_rural": 35, "max_project_cost": 5000000},
+    {"scheme_code": "MUDRA_TARUN", "max_loan": 1000000, "interest_rate_approx": 10}
+  ],
+  "financial_ratios": {
+    "debt_equity_ratio_max": 3.0,
+    "dscr_min": 1.4,
+    "irr_min_percent": 20,
+    "payback_period_max_years": 4
+  }
+}

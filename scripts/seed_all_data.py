@@ -164,6 +164,55 @@ def load_schemes_to_chromadb():
         print("  ChromaDB may not be running. Start it with: docker-compose up chromadb")
 
 
+def load_loan_data():
+    """Load loan rules from JSON into ChromaDB for RAG search."""
+    print("\n[5/5] Loading loan rules into ChromaDB...")
+    loan_path = os.path.join(PROJECT_ROOT, "data", "loan_rules", "all_loans.json")
+    if not os.path.exists(loan_path):
+        print("  Loan rules file not found. Skipping.")
+        return
+
+    try:
+        import chromadb
+
+        with open(loan_path, "r", encoding="utf-8") as f:
+            loans = json.load(f)
+
+        client = chromadb.HttpClient(
+            host=CHROMA_HOST.replace("http://", "").split(":")[0],
+            port=int(CHROMA_HOST.split(":")[-1]),
+        )
+        collection = client.get_or_create_collection(
+            name="loan_rules",
+            metadata={"description": "Loan eligibility rules for advisory"},
+        )
+
+        documents, metadatas, ids = [], [], []
+        for loan in loans:
+            doc_text = (
+                f"{loan.get('loan_name_en', '')}. {loan.get('loan_name_hi', '')}. "
+                f"Max amount: Rs.{loan.get('max_amount', 'N/A')}. "
+                f"Interest: {loan.get('interest_rate_min', '')}-{loan.get('interest_rate_max', '')}%. "
+                f"Subsidy: {loan.get('subsidy_percentage', 0)}%. "
+                f"Collateral: {'Required' if loan.get('collateral_required') else 'Not required'}. "
+                f"Features: {', '.join(loan.get('features', [])[:3])}."
+            )
+            documents.append(doc_text)
+            metadatas.append({
+                "loan_code": loan.get("loan_code", ""),
+                "lender_type": loan.get("lender_type", ""),
+                "max_amount": loan.get("max_amount", 0),
+                "collateral_required": loan.get("collateral_required", False),
+            })
+            ids.append(loan.get("loan_code", str(len(ids))))
+
+        collection.upsert(documents=documents, metadatas=metadatas, ids=ids)
+        print(f"  ✓ Loaded {len(documents)} loan products into ChromaDB")
+
+    except Exception as e:
+        print(f"  Error loading loan data to ChromaDB: {e}")
+
+
 def main():
     print("=" * 60)
     print("KisanMitra Data Seeding Script")
@@ -173,6 +222,7 @@ def main():
     load_scheme_data()
     seed_mandi_data()
     load_schemes_to_chromadb()
+    load_loan_data()
 
     print("\n" + "=" * 60)
     print("Data seeding complete!")

@@ -55,8 +55,47 @@ class RedisClient:
         self, key: str, value: Any, ttl: int | None = None
     ) -> None:
         """Serialise a value to JSON and store it."""
-        raw = json.dumps(value, ensure_ascii=False)
+        raw = json.dumps(value, ensure_ascii=False, default=str)
         if ttl:
             await self._client.setex(key, ttl, raw)
         else:
             await self._client.set(key, raw)
+
+    async def increment(self, key: str, ttl: int | None = None) -> int:
+        """Increment a counter. Returns new value."""
+        val = await self._client.incr(key)
+        if ttl and val == 1:
+            await self._client.expire(key, ttl)
+        return val
+
+    # ── Conversation Memory ─────────────────────────────────────────────────
+
+    async def save_message(self, user_id: str, role: str, content: str,
+                           agent_name: str | None = None) -> None:
+        """Append a message to the user's conversation history."""
+        import time
+        key = f"conv:{user_id}"
+        entry = json.dumps({
+            "role": role,
+            "content": content,
+            "agent_name": agent_name,
+            "timestamp": time.time(),
+        }, ensure_ascii=False, default=str)
+        await self._client.rpush(key, entry)
+        await self._client.ltrim(key, -20, -1)  # Keep last 20 messages
+        await self._client.expire(key, 86400)  # 24-hour TTL
+
+    async def get_conversation_history(self, user_id: str,
+                                        last_n: int = 10) -> list[dict]:
+        """Get the last N messages from conversation history."""
+        key = f"conv:{user_id}"
+        entries = await self._client.lrange(key, -last_n, -1)
+        return [json.loads(e) for e in entries] if entries else []
+
+    async def save_user_context(self, user_id: str, context: dict) -> None:
+        """Store agent-discovered context for follow-up queries."""
+        await self.set_json(f"ctx:{user_id}", context, ttl=3600)
+
+    async def get_user_context(self, user_id: str) -> dict | None:
+        """Retrieve stored conversation context."""
+        return await self.get_json(f"ctx:{user_id}")

@@ -60,7 +60,7 @@ INTENT_KEYWORDS = {
 
 
 async def load_user_profile(state: AgentState) -> AgentState:
-    """Load user profile from DB and conversation context from Redis."""
+    """Load user profile from DB, conversation history & context from Redis."""
     user_id = state.get("user_id", "")
 
     # Load profile
@@ -68,13 +68,24 @@ async def load_user_profile(state: AgentState) -> AgentState:
     user = await db.fetch_one("SELECT * FROM users WHERE id = $1", user_id)
     if user:
         state["user_profile"] = dict(user)
+        state["language"] = state.get("language") or user.get("language", "hi")
     else:
         state["user_profile"] = {}
 
-    # Load conversation context from Redis
+    # Load conversation history (last 5 messages for context)
     redis = RedisClient()
-    context_key = f"conv:{user_id}:context"
-    context = await redis.get_json(context_key)
+    history = await redis.get_conversation_history(user_id, last_n=5)
+    if history:
+        prior_messages = [
+            {"role": h["role"], "content": h["content"]}
+            for h in history
+        ]
+        # Prepend history before current message
+        current = state.get("messages", [])
+        state["messages"] = prior_messages + current
+
+    # Load agent context from previous turn
+    context = await redis.get_user_context(user_id)
     if context:
         state["agent_results"] = state.get("agent_results", {})
         state["agent_results"]["conversation_context"] = context
@@ -211,21 +222,39 @@ Be warm, helpful, and concise. If the user's question is about one of your speci
 
 
 async def save_conversation_context(state: AgentState) -> AgentState:
-    """Save conversation context to Redis for continuity."""
+    """Save conversation messages and agent context to Redis."""
     user_id = state.get("user_id", "")
     if not user_id:
         return state
 
     redis = RedisClient()
+
+    # Save the user's message
+    messages = state.get("messages", [])
+    if messages:
+        last_user = messages[-1]
+        await redis.save_message(user_id, "user", last_user.get("content", ""))
+
+    # Save agent reply
+    reply = state.get("agent_results", {}).get("final_response") or \
+            state.get("agent_results", {}).get("response", "")
+    if reply:
+        agent_name = state.get("current_agent", "general")
+        await redis.save_message(user_id, "assistant", reply, agent_name=agent_name)
+
+    # Save agent context for follow-up queries
     context = {
         "last_agent": state.get("current_agent", ""),
         "last_results_summary": {
             k: v for k, v in state.get("agent_results", {}).items()
-            if k in ("classification", "commodity", "market", "scheme_intent", "loan_intent")
+            if k in ("classification", "commodity", "market", "scheme_intent",
+                      "loan_intent", "mandi_intent", "business_type",
+                      "eligible_schemes", "loan_results")
         },
         "tools_used": state.get("tools_used", []),
     }
-    await redis.set_json(f"conv:{user_id}:context", context, ttl=3600)  # 1 hour
+    await redis.save_user_context(user_id, context)
+
     return state
 
 
@@ -266,8 +295,48 @@ def build_supervisor() -> StateGraph:
 
 
 async def process_message(user_id: str, message: str,
-                           language: str = "hi", channel: str = "whatsapp") -> dict:
+                           language: str = "hi", channel: str = "whatsapp",
+                           audio_base64: str | None = None) -> dict:
     """Main entry point: process a user message through the supervisor."""
+    import time
+    start = time.time()
+
+    # STT: transcribe audio if provided
+    if audio_base64 and not message:
+        try:
+            from app.models.stt_provider import get_stt_router
+            import base64
+            stt = get_stt_router()
+            audio_bytes = base64.b64decode(audio_base64)
+            result = await stt.transcribe(audio_bytes, language=language)
+            message = result.get("text", "")
+            if not message:
+                return {
+                    "reply_text": "माफ कीजिए, आवाज़ समझ नहीं आई। कृपया दोबारा बोलें।"
+                    if language == "hi" else "Sorry, couldn't understand the audio. Please try again.",
+                    "agents_used": [],
+                    "actions_taken": ["stt_failed"],
+                    "follow_up_actions": [],
+                }
+        except Exception as e:
+            logger.error("supervisor.stt_failed", error=str(e))
+            message = ""
+
+    if not message:
+        return {
+            "reply_text": "कृपया अपना सवाल लिखें या बोलें।" if language == "hi"
+                          else "Please type or speak your question.",
+            "agents_used": [],
+            "actions_taken": [],
+            "follow_up_actions": [],
+        }
+
+    # Handle special commands
+    lower = message.strip().lower()
+    special = _handle_special_command(lower, language)
+    if special:
+        return special
+
     state: AgentState = {
         "user_id": user_id,
         "messages": [{"role": "user", "content": message}],
@@ -281,9 +350,68 @@ async def process_message(user_id: str, message: str,
     compiled = graph.compile()
     result = await compiled.ainvoke(state)
 
+    latency_ms = int((time.time() - start) * 1000)
+    logger.info("supervisor.processed", user_id=user_id,
+                agent=result.get("current_agent", ""),
+                latency_ms=latency_ms)
+
+    reply_text = result.get("agent_results", {}).get("final_response", "")
+
+    # Generate TTS if channel is whatsapp and reply exists
+    reply_audio = None
+    if channel == "whatsapp" and reply_text and len(reply_text) < 500:
+        try:
+            from app.models.tts_provider import get_tts_provider
+            import base64 as b64
+            tts = get_tts_provider()
+            audio_bytes = await tts.speak(reply_text, language=language)
+            if audio_bytes:
+                reply_audio = b64.b64encode(audio_bytes).decode()
+        except Exception:
+            pass  # TTS is optional
+
     return {
-        "reply_text": result.get("agent_results", {}).get("final_response", ""),
+        "reply_text": reply_text,
+        "reply_audio_base64": reply_audio,
         "agents_used": [result.get("current_agent", "")],
         "actions_taken": result.get("tools_used", []),
         "follow_up_actions": result.get("follow_up_actions", []),
     }
+
+
+def _handle_special_command(message: str, language: str) -> dict | None:
+    """Handle special user commands."""
+    help_triggers = {"help", "madad", "मदद", "sahayata", "सहायता"}
+    status_triggers = {"status", "meri applications", "मेरी applications", "mera status"}
+    lang_en_triggers = {"language english", "english", "angrezi"}
+    lang_hi_triggers = {"language hindi", "hindi", "bhasha hindi"}
+
+    if message in help_triggers:
+        if language == "hi":
+            text = (
+                "मैं किसानमित्र हूं! मैं इनमें मदद कर सकता हूं:\n\n"
+                "1. *सरकारी योजनाएं* — \"मेरे लिए कौन सी योजना है?\"\n"
+                "2. *मंडी भाव* — \"टमाटर का रेट बताओ\"\n"
+                "3. *लोन सलाह* — \"डेयरी के लिए लोन चाहिए\"\n"
+                "4. *भुगतान विवाद* — \"payment नहीं मिला, notice भेजना है\"\n"
+                "5. *प्रोजेक्ट रिपोर्ट* — \"डेयरी फार्म का DPR बनाओ\"\n\n"
+                "बस अपना सवाल हिंदी या English में पूछें!"
+            )
+        else:
+            text = (
+                "I'm KisanMitra! I can help with:\n\n"
+                "1. *Government Schemes* — \"What schemes am I eligible for?\"\n"
+                "2. *Mandi Prices* — \"Tomato price in Kanpur\"\n"
+                "3. *Loan Advisory* — \"I need a loan for dairy farm\"\n"
+                "4. *Payment Disputes* — \"Buyer hasn't paid, send legal notice\"\n"
+                "5. *Project Reports* — \"Generate DPR for dairy farm\"\n\n"
+                "Just ask your question in Hindi or English!"
+            )
+        return {"reply_text": text, "agents_used": ["help"], "actions_taken": [], "follow_up_actions": []}
+
+    if message in status_triggers:
+        return {"reply_text": "आपकी applications की जानकारी जल्दी आ रही है..." if language == "hi"
+                else "Fetching your application status...",
+                "agents_used": ["status"], "actions_taken": [], "follow_up_actions": []}
+
+    return None

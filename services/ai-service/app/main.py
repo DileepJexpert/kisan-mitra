@@ -11,6 +11,7 @@ from app.db.redis_client import RedisClient
 from app.db.chroma_client import ChromaClient
 from app.schemas import HealthResponse
 
+from app.middleware.error_handler import register_error_handlers
 from app.routers import (
     agent_router,
     scheme_router,
@@ -95,6 +96,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Error handlers ──────────────────────────────────────────────────────────
+
+register_error_handlers(app)
 
 # ── Prometheus metrics ───────────────────────────────────────────────────────
 
